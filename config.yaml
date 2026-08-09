@@ -44,16 +44,13 @@ cache:
   enabled: true
   reuse_opencellid_extent_cache: true
 
-supabase:
+google_sheets:
   enabled: false
-  url: ""
-  anon_key: ""
-  service_role_key: ""
-  schema: public
-  table_prefix: connectivity
-  timeout_seconds: 30
-  chunk_size: 500
-  fail_on_error: true
+  spreadsheet_id: ""
+  service_account_json: ""
+  service_account_file: ""
+  worksheet_prefix: connectivity
+  clear_before_write: true
   sync_provider_rows: true
   sync_village_summary: true
   sync_run_metadata: true

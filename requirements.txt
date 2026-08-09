@@ -7,3 +7,6 @@ openpyxl
 pyyaml
 pyogrio
 pyarrow
+gspread
+gspread-dataframe
+google-auth

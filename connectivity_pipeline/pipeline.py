@@ -24,7 +24,7 @@ from shapely.geometry import Point, box
 from archive_utils import archive_existing_path
 from source_metadata import file_mtime_iso, recency_payload, series_latest_iso
 from .providers import normalize_provider_name, provider_from_codes
-from .supabase_sync import sync_pipeline_outputs
+from .google_sheets_sync import sync_pipeline_outputs
 
 
 REQUIRED_VILLAGE_COLUMNS = ["state", "district", "block", "village", "lgd_code"]
@@ -35,8 +35,8 @@ class PipelineOutputs:
     provider_csv: Path
     summary_xlsx: Path
     villages_geojson: Path
-    supabase_synced: bool = False
-    supabase_tables: list[str] | None = None
+    google_sheets_synced: bool = False
+    google_sheets_tabs: list[str] | None = None
     run_id: str | None = None
 
 
@@ -131,20 +131,19 @@ def run_pipeline(config: dict[str, Any], base_dir: Path) -> PipelineOutputs:
     archive_existing_path(villages_geojson)
     write_geojson(villages_gdf, final_provider_rows, villages_geojson)
 
-    supabase_result = sync_pipeline_outputs(
+    google_sheets_result = sync_pipeline_outputs(
         config=config,
         provider_rows=final_provider_rows,
         source_recency=source_recency,
-        villages_df=villages_df,
     )
 
     return PipelineOutputs(
         provider_csv=provider_csv,
         summary_xlsx=summary_xlsx,
         villages_geojson=villages_geojson,
-        supabase_synced=bool(supabase_result.get("synced")),
-        supabase_tables=list(supabase_result.get("tables", [])),
-        run_id=str(supabase_result.get("run_id") or ""),
+        google_sheets_synced=bool(google_sheets_result.get("synced")),
+        google_sheets_tabs=list(google_sheets_result.get("tabs", [])),
+        run_id=str(google_sheets_result.get("run_id") or ""),
     )
 
 

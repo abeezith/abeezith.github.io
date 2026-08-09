@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 import yaml
 
-from connectivity_pipeline.supabase_sync import sync_pipeline_outputs
+from connectivity_pipeline.google_sheets_sync import sync_pipeline_outputs
 
 
 def load_config(config_path: Path) -> dict:
@@ -15,7 +15,7 @@ def load_config(config_path: Path) -> dict:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Sync the latest pipeline outputs to Supabase.")
+    parser = argparse.ArgumentParser(description="Sync the latest pipeline outputs to Google Sheets.")
     parser.add_argument(
         "--config",
         default=Path(__file__).resolve().parent / "config.yaml",

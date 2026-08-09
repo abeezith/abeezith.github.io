@@ -25,20 +25,19 @@ cd E:\Resources\SecondBrain\koraput_connectivity_pipeline
 pip install -r requirements.txt
 ```
 
-## Optional Supabase sync
+## Optional Google Sheets sync
 
-If you want the pipeline to write to Supabase as well as local files, set these environment variables before running:
+If you want the pipeline to write to Google Sheets as well as local files, set these environment variables before running:
 
 ```powershell
-$env:SUPABASE_URL="https://YOUR-PROJECT.supabase.co"
-$env:SUPABASE_SERVICE_ROLE_KEY="YOUR_SERVICE_ROLE_KEY"
+$env:GOOGLE_SHEETS_SPREADSHEET_ID="YOUR_SPREADSHEET_ID"
+$env:GOOGLE_SERVICE_ACCOUNT_JSON="{...full service account JSON...}"
 ```
 
-You can also override the default schema and table prefix:
+You can also override the default worksheet prefix:
 
 ```powershell
-$env:SUPABASE_SCHEMA="public"
-$env:SUPABASE_TABLE_PREFIX="connectivity"
+$env:GOOGLE_SHEETS_WORKSHEET_PREFIX="connectivity"
 ```
 
 The sync is optional. If the variables are not set, the pipeline behaves exactly as before.
@@ -47,11 +46,10 @@ The sync is optional. If the variables are not set, the pipeline behaves exactly
 
 If you want the latest committed outputs to sync automatically from GitHub:
 
-1. Add repository secrets named `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
-1. Optionally add `SUPABASE_SCHEMA` and `SUPABASE_TABLE_PREFIX`.
-1. Run [supabase/schema.sql](./supabase/schema.sql) once in the Supabase SQL Editor to create the three tables.
+1. Add repository secrets named `GOOGLE_SHEETS_SPREADSHEET_ID` and `GOOGLE_SERVICE_ACCOUNT_JSON`.
+1. Optionally add `GOOGLE_SHEETS_WORKSHEET_PREFIX`.
 1. Commit updated `outputs/village_provider_signal_estimate.csv` and `outputs/village_connectivity_summary.xlsx`.
-1. The workflow in [.github/workflows/supabase-sync.yml](./.github/workflows/supabase-sync.yml) will push the latest CSV rows to Supabase on each relevant commit, or you can run it manually from the Actions tab.
+1. The workflow in [.github/workflows/google-sheets-sync.yml](./.github/workflows/google-sheets-sync.yml) will push the latest CSV rows to Google Sheets on each relevant commit, or you can run it manually from the Actions tab.
 
 ## Run the Koraput base workflow
 
