@@ -52,6 +52,34 @@ jobs:
             echo "PROVIDER_CSV=outputs/village_provider_signal_estimate.csv" >> "$GITHUB_ENV"
           fi
 
+      - name: Preflight Google Sheets inputs
+        shell: bash
+        env:
+          GOOGLE_SHEETS_SPREADSHEET_ID: ${{ secrets.GOOGLE_SHEETS_SPREADSHEET_ID }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          GOOGLE_SERVICE_ACCOUNT_FILE: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_FILE }}
+        run: |
+          python - <<'PY'
+          import os
+          import sys
+
+          spreadsheet_id = os.getenv("GOOGLE_SHEETS_SPREADSHEET_ID", "").strip()
+          service_account_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "").strip()
+          service_account_file = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE", "").strip()
+
+          if not spreadsheet_id:
+              print("Missing GOOGLE_SHEETS_SPREADSHEET_ID secret or config value.")
+              sys.exit(1)
+          if not (service_account_json or service_account_file):
+              print("Missing Google service account secret. Add GOOGLE_SERVICE_ACCOUNT_JSON or GOOGLE_SERVICE_ACCOUNT_FILE.")
+              sys.exit(1)
+
+          print("Google Sheets preflight passed.")
+          print(f"Spreadsheet ID present: yes")
+          print(f"Service account JSON present: {'yes' if service_account_json else 'no'}")
+          print(f"Service account file present: {'yes' if service_account_file else 'no'}")
+          PY
+
       - name: Sync outputs to Google Sheets
         env:
           GOOGLE_SHEETS_SPREADSHEET_ID: ${{ secrets.GOOGLE_SHEETS_SPREADSHEET_ID }}
