@@ -80,6 +80,7 @@ cd E:\Resources\SecondBrain\koraput_connectivity_pipeline
 - Existing district folders are archived before overwrite.
 - Existing CSV, XLSX, JSON, and HTML files are archived before replacement.
 - Do not delete `outputs/_archive/`; it is the rollback history.
+- The daily retention job keeps weekly raw snapshots for 4 weeks, monthly rollups for 12 months, and annual rollups for long-term trend analysis under `outputs/retention/`.
 - Do not store Supabase secrets in `config.yaml`; prefer environment variables or your GitHub repository secrets.
 
 ## Data recency fields

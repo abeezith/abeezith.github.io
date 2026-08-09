@@ -96,6 +96,14 @@ If you want GitHub to sync automatically, add these repository secrets:
 
 Then the workflow at [.github/workflows/google-sheets-sync.yml](./.github/workflows/google-sheets-sync.yml) will sync the latest committed `outputs/village_provider_signal_estimate.csv` whenever it changes, or whenever you run the workflow manually.
 
+## Retention
+
+The daily automation keeps a rolling history under `outputs/retention/`:
+
+- weekly raw snapshots for the last 4 weeks
+- monthly district/provider rollups for the last 12 months
+- annual district/provider rollups for long-term analysis
+
 ## Run
 
 ```powershell

@@ -55,6 +55,12 @@ google_sheets:
   sync_village_summary: true
   sync_run_metadata: true
 
+retention:
+  enabled: true
+  weekly_days: 28
+  monthly_months: 12
+  annual_enabled: true
+
 current_operators:
   - Airtel
   - BSNL
