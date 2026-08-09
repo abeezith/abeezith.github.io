@@ -1,0 +1,64 @@
+name: Daily Connectivity Refresh
+
+on:
+  schedule:
+    - cron: "30 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-connectivity-refresh
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Preflight Google Sheets inputs
+        shell: bash
+        env:
+          GOOGLE_SHEETS_SPREADSHEET_ID: ${{ secrets.GOOGLE_SHEETS_SPREADSHEET_ID }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          GOOGLE_SERVICE_ACCOUNT_FILE: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_FILE }}
+        run: |
+          python - <<'PY'
+          import os
+          import sys
+
+          spreadsheet_id = os.getenv("GOOGLE_SHEETS_SPREADSHEET_ID", "").strip()
+          service_account_json = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "").strip()
+          service_account_file = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE", "").strip()
+
+          if not spreadsheet_id:
+              print("Missing GOOGLE_SHEETS_SPREADSHEET_ID secret or config value.")
+              sys.exit(1)
+          if not (service_account_json or service_account_file):
+              print("Missing Google service account secret. Add GOOGLE_SERVICE_ACCOUNT_JSON or GOOGLE_SERVICE_ACCOUNT_FILE.")
+              sys.exit(1)
+
+          print("Google Sheets preflight passed.")
+          PY
+
+      - name: Run full connectivity refresh
+        env:
+          GOOGLE_SHEETS_SPREADSHEET_ID: ${{ secrets.GOOGLE_SHEETS_SPREADSHEET_ID }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          GOOGLE_SERVICE_ACCOUNT_FILE: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_FILE }}
+          GOOGLE_SHEETS_WORKSHEET_PREFIX: ${{ secrets.GOOGLE_SHEETS_WORKSHEET_PREFIX }}
+        run: |
+          python run_pipeline.py --config config.yaml
