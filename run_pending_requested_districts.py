@@ -7,7 +7,7 @@ from pathlib import Path
 import pandas as pd
 
 
-ROOT = Path(r"E:\Resources\SecondBrain\koraput_connectivity_pipeline")
+ROOT = Path(__file__).resolve().parent
 STATUS_CSV = ROOT / "outputs" / "requested_districts" / "requested_district_status.csv"
 ENRICH_SCRIPT = ROOT / "enrich_requested_districts_from_stoptb.py"
 PYTHON_EXE = ROOT / ".venv" / "Scripts" / "python.exe"

@@ -5,7 +5,7 @@ from pathlib import Path
 import shutil
 
 
-ROOT = Path(r"E:\Resources\SecondBrain\koraput_connectivity_pipeline")
+ROOT = Path(__file__).resolve().parent
 ARCHIVE_ROOT = ROOT / "outputs" / "_archive"
 
 

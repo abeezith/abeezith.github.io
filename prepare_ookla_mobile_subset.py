@@ -6,7 +6,7 @@ import geopandas as gpd
 import pandas as pd
 
 
-ROOT = Path(r"E:\Resources\SecondBrain\koraput_connectivity_pipeline")
+ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 MASTER_XLSX = DATA_DIR / "lgd_village_master.xlsx"
 OOKLA_PARQUET = DATA_DIR / "ookla_mobile_tiles_q1_2026.parquet"

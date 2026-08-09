@@ -17,7 +17,7 @@ from archive_utils import archive_existing_path, archive_existing_tree
 from connectivity_pipeline.pipeline import load_config, run_pipeline
 
 
-ROOT = Path(r"E:\Resources\SecondBrain\koraput_connectivity_pipeline")
+ROOT = Path(__file__).resolve().parent
 SOURCE_CSV = Path(r"E:\Resources\SecondBrain\outputs\stoptb_ben_screen_30_Jun_2026_mapped.csv")
 REQUESTED_DISTRICTS_CSV = Path(r"E:\Resources\SecondBrain\outputs\phi_requested_districts_20260629\phi_requested_districts.csv")
 BASE_CONFIG = ROOT / "config.yaml"

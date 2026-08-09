@@ -7,6 +7,8 @@ on:
 
 permissions:
   contents: read
+  pages: write
+  id-token: write
 
 concurrency:
   group: daily-connectivity-refresh
@@ -14,6 +16,9 @@ concurrency:
 
 jobs:
   refresh:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -62,3 +67,26 @@ jobs:
           GOOGLE_SHEETS_WORKSHEET_PREFIX: ${{ secrets.GOOGLE_SHEETS_WORKSHEET_PREFIX }}
         run: |
           python run_pipeline.py --config config.yaml
+
+      - name: Rebuild requested district summary
+        run: |
+          python rebuild_requested_district_summary.py
+
+      - name: Rebuild requested district site
+        run: |
+          python generate_requested_districts_site.py
+
+      - name: Publish site to docs
+        shell: bash
+        run: |
+          mkdir -p docs/networkmap
+          cp outputs/requested_districts_site/index.html docs/networkmap/index.html
+
+      - name: Upload pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./docs
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

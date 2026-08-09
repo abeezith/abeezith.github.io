@@ -14,7 +14,7 @@ from generate_provider_map import (
 )
 
 
-ROOT = Path(r"E:\Resources\SecondBrain\koraput_connectivity_pipeline")
+ROOT = Path(__file__).resolve().parent
 SUMMARY_CSV = ROOT / "outputs" / "requested_districts" / "requested_district_summary.csv"
 STATUS_CSV = ROOT / "outputs" / "requested_districts" / "requested_district_status.csv"
 SITE_ROOT = ROOT / "outputs" / "requested_districts_site"

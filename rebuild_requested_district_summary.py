@@ -11,7 +11,7 @@ from enrich_requested_districts_from_stoptb import DISTRICT_OUTPUT_ROOT, SITE_RO
 from source_metadata import file_mtime_iso
 
 
-ROOT = Path(r"E:\Resources\SecondBrain\koraput_connectivity_pipeline")
+ROOT = Path(__file__).resolve().parent
 STATUS_CSV = DISTRICT_OUTPUT_ROOT / "requested_district_status.csv"
 SUMMARY_CSV = DISTRICT_OUTPUT_ROOT / "requested_district_summary.csv"
 SUMMARY_JSON = DISTRICT_OUTPUT_ROOT / "requested_district_summary.json"

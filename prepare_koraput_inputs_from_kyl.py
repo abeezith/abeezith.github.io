@@ -13,7 +13,7 @@ from pyproj import Transformer
 from shapely.geometry import shape
 
 
-ROOT = Path(r"E:\Resources\SecondBrain\koraput_connectivity_pipeline")
+ROOT = Path(__file__).resolve().parent
 SOURCE_CSV = Path(r"E:\Resources\SecondBrain\odisha_gp_village_to_subcentre_mapping_data.csv")
 DATA_DIR = ROOT / "data"
 VILLAGES_XLSX = DATA_DIR / "villages.xlsx"

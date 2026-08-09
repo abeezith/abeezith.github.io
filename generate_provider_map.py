@@ -10,7 +10,7 @@ import pandas as pd
 from archive_utils import archive_existing_path
 
 
-ROOT = Path(r"E:\Resources\SecondBrain\koraput_connectivity_pipeline")
+ROOT = Path(__file__).resolve().parent
 DEFAULT_INPUT_CSV = ROOT / "outputs" / "village_provider_signal_estimate.csv"
 DEFAULT_OUTPUT_HTML = ROOT / "outputs" / "village_connectivity_map.html"
 
