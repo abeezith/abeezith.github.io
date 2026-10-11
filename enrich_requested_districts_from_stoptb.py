@@ -596,7 +596,10 @@ def run_district_pipeline(
         # also makes local/manual runs safe from a quota-related interruption.
         if archived_tower_path is not None and archived_tower_path.exists():
             shutil.copy2(archived_tower_path, tower_path)
-        raise
+            print("OpenCellID daily quota exhausted; reusing the archived verified tower snapshot for this run.")
+            outputs = run_pipeline(config, ROOT)
+        else:
+            raise
     map_path = output_dir / "village_connectivity_map.html"
     subprocess.run(
         [
