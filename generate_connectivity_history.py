@@ -11,6 +11,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parent
 RETENTION_ROOT = ROOT / "outputs" / "retention"
 OUTPUT = ROOT / "outputs" / "requested_districts_site" / "history.html"
+PAGES_OUTPUT = ROOT / "docs" / "networkmap" / "history.html"
 SCORE_RANK = {"Unknown": 0, "Weak": 1, "Moderate": 2, "Strong": 3}
 
 
@@ -77,7 +78,10 @@ body{{margin:0;background:#f7f3e8;color:#223127;font-family:Georgia,serif}}main{
 def main() -> None:
     weekly, monthly = weekly_rows(), monthly_rows()
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT.write_text(build_html(weekly, monthly), encoding="utf-8")
+    html = build_html(weekly, monthly)
+    OUTPUT.write_text(html, encoding="utf-8")
+    PAGES_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    PAGES_OUTPUT.write_text(html, encoding="utf-8")
     print(f"Wrote {OUTPUT} with {len(weekly)} weekly and {len(monthly)} monthly rows.")
 
 

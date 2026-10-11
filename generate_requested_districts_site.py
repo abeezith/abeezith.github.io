@@ -19,6 +19,7 @@ SUMMARY_CSV = ROOT / "outputs" / "requested_districts" / "requested_district_sum
 STATUS_CSV = ROOT / "outputs" / "requested_districts" / "requested_district_status.csv"
 SITE_ROOT = ROOT / "outputs" / "requested_districts_site"
 OUTPUT_HTML = SITE_ROOT / "index.html"
+PAGES_OUTPUT_HTML = ROOT / "docs" / "networkmap" / "index.html"
 SUMMARY_JSON = ROOT / "outputs" / "requested_districts" / "requested_district_summary.json"
 
 
@@ -966,6 +967,8 @@ def main() -> None:
     OUTPUT_HTML.parent.mkdir(parents=True, exist_ok=True)
     archive_existing_path(OUTPUT_HTML)
     OUTPUT_HTML.write_text(html, encoding="utf-8")
+    PAGES_OUTPUT_HTML.parent.mkdir(parents=True, exist_ok=True)
+    PAGES_OUTPUT_HTML.write_text(html, encoding="utf-8")
     print(f"Wrote combined requested district site to {OUTPUT_HTML}")
 
 
