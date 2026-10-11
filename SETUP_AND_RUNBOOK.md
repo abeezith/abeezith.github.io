@@ -32,6 +32,7 @@ If you want the pipeline to write to Google Sheets as well as local files, set t
 ```powershell
 $env:GOOGLE_SHEETS_SPREADSHEET_ID="YOUR_SPREADSHEET_ID"
 $env:GOOGLE_SERVICE_ACCOUNT_JSON="{...full service account JSON...}"
+$env:OPENCELLID_TOKEN="YOUR_OPENCELLID_TOKEN"
 ```
 
 You can also override the default worksheet prefix:
@@ -46,7 +47,7 @@ The sync is optional. If the variables are not set, the pipeline behaves exactly
 
 If you want the latest committed outputs to sync automatically from GitHub:
 
-1. Add repository secrets named `GOOGLE_SHEETS_SPREADSHEET_ID` and `GOOGLE_SERVICE_ACCOUNT_JSON`.
+1. Add repository secrets named `GOOGLE_SHEETS_SPREADSHEET_ID`, `GOOGLE_SERVICE_ACCOUNT_JSON`, and `OPENCELLID_TOKEN`.
 1. Optionally add `GOOGLE_SHEETS_WORKSHEET_PREFIX`.
 1. Commit updated `outputs/village_provider_signal_estimate.csv` and `outputs/village_connectivity_summary.xlsx`.
 1. The workflow in [.github/workflows/google-sheets-sync.yml](./.github/workflows/google-sheets-sync.yml) will push the latest CSV rows to Google Sheets on each relevant commit, or you can run it manually from the Actions tab.

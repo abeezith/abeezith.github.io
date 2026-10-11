@@ -15,7 +15,7 @@ api:
   opencellid:
     enabled: true
     download_url: ""
-    token: "pk.1fb9131d596952ba3fd72af909651440"
+    token: ""
     request_headers: {}
     mode: area_api
     area_tile_size_deg: 0.018

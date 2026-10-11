@@ -78,6 +78,7 @@ Use [.env.example](./.env.example) as a template for local setup.
 ```powershell
 $env:GOOGLE_SHEETS_SPREADSHEET_ID="YOUR_SPREADSHEET_ID"
 $env:GOOGLE_SERVICE_ACCOUNT_JSON="{...full service account JSON...}"
+$env:OPENCELLID_TOKEN="YOUR_OPENCELLID_TOKEN"
 ```
 
 If you prefer config-driven setup, you can also fill the `google_sheets` section in [config.yaml](/E:/Resources/SecondBrain/koraput_connectivity_pipeline/config.yaml) and set `enabled: true`.
@@ -92,6 +93,7 @@ If you want GitHub to sync automatically, add these repository secrets:
 
 - `GOOGLE_SHEETS_SPREADSHEET_ID`
 - `GOOGLE_SERVICE_ACCOUNT_JSON`
+- `OPENCELLID_TOKEN`
 - optional `GOOGLE_SHEETS_WORKSHEET_PREFIX`
 
 Then the workflow at [.github/workflows/google-sheets-sync.yml](./.github/workflows/google-sheets-sync.yml) will sync the latest committed `outputs/village_provider_signal_estimate.csv` whenever it changes, or whenever you run the workflow manually.

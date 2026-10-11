@@ -5,6 +5,7 @@ import hashlib
 import io
 import json
 import math
+import os
 import shutil
 import time
 from datetime import UTC, datetime
@@ -348,6 +349,11 @@ def to_points_gdf(df: pd.DataFrame, lon_col: str, lat_col: str) -> gpd.GeoDataFr
     return gpd.GeoDataFrame(clean, geometry="geometry", crs="EPSG:4326")
 
 
+def opencellid_token() -> str:
+    """Read the credential from the environment, never from tracked config."""
+    return os.getenv("OPENCELLID_TOKEN", "").strip()
+
+
 def ensure_tower_data(config: dict[str, Any], tower_path: Path, villages_gdf: gpd.GeoDataFrame) -> None:
     if tower_path.exists():
         if tower_file_has_rows(tower_path):
@@ -374,8 +380,9 @@ def ensure_tower_data(config: dict[str, Any], tower_path: Path, villages_gdf: gp
         raise ValueError("OpenCellID download is enabled but no download_url was provided in config.yaml.")
 
     headers = dict(api_config.get("request_headers", {}))
-    if api_config.get("token"):
-        headers.setdefault("Authorization", f"Bearer {api_config['token']}")
+    token = opencellid_token()
+    if token:
+        headers.setdefault("Authorization", f"Bearer {token}")
 
     response = requests.get(download_url, headers=headers, timeout=120)
     response.raise_for_status()
@@ -385,9 +392,9 @@ def ensure_tower_data(config: dict[str, Any], tower_path: Path, villages_gdf: gp
 
 def download_opencellid_area_data(config: dict[str, Any], villages_gdf: gpd.GeoDataFrame, tower_path: Path) -> None:
     api_config = config.get("api", {}).get("opencellid", {})
-    token = str(api_config.get("token") or "").strip()
+    token = opencellid_token()
     if not token:
-        raise ValueError("OpenCellID area API mode requires api.opencellid.token in config.yaml.")
+        raise ValueError("OpenCellID area API mode requires the OPENCELLID_TOKEN environment variable.")
 
     search_radius_km = float(config["distance"]["search_radius_km"])
     expanded_search_radius_km = float(config["distance"].get("expanded_search_radius_km", search_radius_km))
@@ -461,7 +468,7 @@ def fetch_opencellid_area_tiles(
     tower_path: Path,
 ) -> pd.DataFrame:
     api_config = config.get("api", {}).get("opencellid", {})
-    token = str(api_config.get("token") or "").strip()
+    token = opencellid_token()
     buffered_area = compute_buffered_area(villages_gdf, search_radius_km)
     cache_path = resolve_opencellid_extent_cache_path(config, tower_path, buffered_area.bounds, search_radius_km)
     if cache_path is not None and cache_path.exists():
