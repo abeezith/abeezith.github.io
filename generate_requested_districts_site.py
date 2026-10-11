@@ -109,6 +109,7 @@ def build_status_records(summary_df: pd.DataFrame, status_df: pd.DataFrame) -> l
                 "tower_file_size_bytes": int(row.opencellid_file_size_bytes),
                 "tower_rows": tower_rows,
                 "non_unknown_rows": non_unknown_rows,
+                "data_as_of": str(getattr(row, "data_as_of", "") or ""),
                 "provider_csv_updated": fmt_timestamp(provider_csv) if provider_csv else "",
                 "tower_file_updated": fmt_timestamp(tower_file) if tower_file else "",
             }
@@ -306,6 +307,12 @@ def build_html(
     .district-status-item strong {{
       display: block;
       margin-bottom: 3px;
+    }}
+    .district-status-item small {{
+      display: block;
+      margin-top: 4px;
+      color: #5e695b;
+      font-size: 11px;
     }}
     .status-tag {{
       display: inline-block;
@@ -693,9 +700,11 @@ def build_html(
       const limited = pairs.slice(0, 12);
       for (const pair of limited) {{
         const status = districtStatusMap[`${{pair.state}}|||${{pair.district}}`] || "pending_fetch";
+        const record = statusRecords.find((row) => row.requested_state === pair.state && row.requested_district === pair.district);
+        const updatedDate = record && record.data_as_of ? String(record.data_as_of).slice(0, 10) : "Not available";
         const item = document.createElement("div");
         item.className = "district-status-item";
-        item.innerHTML = `<strong>${{pair.state}} | ${{pair.district}}</strong><span class="status-tag" style="background:${{statusColor(status)}}22;color:${{statusColor(status)}};border:1px solid ${{statusColor(status)}}55">${{statusLabel(status)}}</span>`;
+        item.innerHTML = `<strong>${{pair.state}} | ${{pair.district}}</strong><span class="status-tag" style="background:${{statusColor(status)}}22;color:${{statusColor(status)}};border:1px solid ${{statusColor(status)}}55">${{statusLabel(status)}}</span><small>Updated: ${{updatedDate}}</small>`;
         districtStatusList.appendChild(item);
       }}
       if (pairs.length > limited.length) {{
