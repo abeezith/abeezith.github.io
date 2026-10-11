@@ -1,9 +1,10 @@
-name: Weekly Connectivity Refresh
+name: Rolling Connectivity Refresh
 
 on:
   schedule:
-    # Sunday 21:30 UTC = Monday 03:00 India Standard Time.
-    - cron: "30 21 * * 0"
+    # 21:30 UTC = 03:00 India Standard Time. One district each day stays
+    # within OpenCellID's 1,000 daily request-credit allowance.
+    - cron: "30 21 * * *"
   workflow_dispatch:
 
 permissions:
@@ -77,6 +78,13 @@ jobs:
           python drive_assets.py download-inputs --folder-id "$GOOGLE_DRIVE_FOLDER_ID" --destination runtime_inputs
           python drive_assets.py download-retention --folder-id "$GOOGLE_DRIVE_FOLDER_ID" --destination outputs/retention
 
+      - name: Select today's district refresh target
+        id: target
+        run: |
+          python select_refresh_target.py \
+            --requested-districts-csv runtime_inputs/phi_requested_districts.csv \
+            --github-output "$GITHUB_OUTPUT"
+
       - name: Refresh all requested districts from current sources
         env:
           OPENCELLID_TOKEN: ${{ secrets.OPENCELLID_TOKEN }}
@@ -85,6 +93,8 @@ jobs:
             --source-csv runtime_inputs/stoptb_ben_screen_30_Jun_2026_mapped.csv \
             --requested-districts-csv runtime_inputs/phi_requested_districts.csv \
             --ookla-parquet runtime_inputs/ookla_mobile_tiles_q1_2026 \
+            --requested-state "${{ steps.target.outputs.state }}" \
+            --requested-district "${{ steps.target.outputs.district }}" \
             --force-refresh
 
       - name: Combine current district provider estimates

@@ -73,9 +73,9 @@ pip install -r requirements.txt
 
 The repo supports an opt-in Google Sheets sync. Keep secrets out of the repo and set them as environment variables instead:
 
-## Automated Weekly Refresh
+## Automated Rolling Refresh
 
-`Weekly Connectivity Refresh` fetches a fresh OpenCellID area extract for every requested district, updates the Google Sheets operational views, applies the four-week/twelve-month retention policy, and redeploys GitHub Pages. Its large inputs and retained snapshots live in Google Drive rather than GitHub's temporary runner storage.
+`Rolling Connectivity Refresh` runs daily at 03:00 IST and refreshes one requested district per run. This gives the 27-district set a 27-day refresh cycle while remaining inside OpenCellID's documented 1,000 daily request-credit allowance. Each run updates the Google Sheets operational views, applies the four-week/twelve-month retention policy, and redeploys GitHub Pages. Its large inputs and retained snapshots live in Google Drive rather than GitHub's temporary runner storage.
 
 It requires these repository settings: `OPENCELLID_TOKEN`, `GOOGLE_SERVICE_ACCOUNT_JSON`, and `GOOGLE_SHEETS_SPREADSHEET_ID` as secrets, plus `GOOGLE_DRIVE_FOLDER_ID` as a repository variable. The Drive folder must be shared with the service account as Editor. The Ookla dataset is refreshed only when a newer lawful source file is placed in Drive; the workflow records its source period separately from the weekly OpenCellID pull.
 

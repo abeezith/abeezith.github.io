@@ -21,8 +21,10 @@ api:
     area_tile_size_deg: 0.018
     max_bbox_area_sq_m: 4000000
     page_limit: 50
-    pause_seconds: 0.05
-    workers: 6
+    # OpenCellID has a daily credit allowance. Keep request concurrency modest
+    # so a rolling district refresh does not trigger temporary throttling.
+    pause_seconds: 0.15
+    workers: 2
 
 distance:
   search_radius_km: 10

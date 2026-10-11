@@ -81,11 +81,11 @@ cd E:\Resources\SecondBrain\koraput_connectivity_pipeline
 - Existing district folders are archived before overwrite.
 - Existing CSV, XLSX, JSON, and HTML files are archived before replacement.
 - Do not delete `outputs/_archive/`; it is the rollback history.
-- The weekly GitHub Action keeps four raw weekly snapshots, twelve monthly rollups, and a rolling annual district/provider rollup in the shared Drive folder. GitHub Actions downloads the retained set before each run, updates it, and removes expired snapshots only after the new set has uploaded successfully.
+- The rolling GitHub Action keeps raw snapshots for the latest 28 days, twelve monthly rollups, and a rolling annual district/provider rollup in the shared Drive folder. GitHub Actions downloads the retained set before each run, updates it, and removes expired snapshots only after the new set has uploaded successfully.
 
-## Weekly Refresh Automation
+## Rolling Refresh Automation
 
-The `Weekly Connectivity Refresh` workflow runs at 03:00 IST every Monday and can also be run manually from the Actions tab. It refreshes all requested districts using the OpenCellID token stored in `OPENCELLID_TOKEN`, synchronizes the latest full village/provider table to Google Sheets, rebuilds the Pages site, and deploys it.
+The `Rolling Connectivity Refresh` workflow runs at 03:00 IST every day and can also be run manually from the Actions tab. It selects one district each day from the 27-district rotation, which prevents OpenCellID's daily request-credit limit from stopping the refresh. It synchronizes the latest full village/provider table to Google Sheets, rebuilds the Pages site, and deploys it.
 
 Required GitHub configuration:
 

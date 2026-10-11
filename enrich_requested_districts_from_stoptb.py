@@ -15,7 +15,7 @@ import pandas as pd
 import requests
 
 from archive_utils import archive_existing_path, archive_existing_tree
-from connectivity_pipeline.pipeline import load_config, run_pipeline
+from connectivity_pipeline.pipeline import OpenCellIDDailyQuotaExceeded, load_config, run_pipeline
 
 
 ROOT = Path(__file__).resolve().parent
@@ -552,8 +552,9 @@ def run_district_pipeline(
     output_dir.mkdir(parents=True, exist_ok=True)
     villages_path = data_dir / "villages.csv"
     tower_path = data_dir / "opencellid_district.csv.gz"
+    archived_tower_path: Path | None = None
     if force_refresh and tower_path.exists():
-        archive_existing_path(tower_path)
+        archived_tower_path = archive_existing_path(tower_path)
         tower_path.unlink(missing_ok=True)
     if opencellid_tower_path is not None:
         if opencellid_tower_path.resolve() != tower_path.resolve():
@@ -590,6 +591,12 @@ def run_district_pipeline(
         )
         empty_towers.to_csv(tower_path, index=False, compression="gzip")
         outputs = run_pipeline(config, ROOT)
+    except OpenCellIDDailyQuotaExceeded:
+        # The refresh runs in an ephemeral Actions checkout, but restoring here
+        # also makes local/manual runs safe from a quota-related interruption.
+        if archived_tower_path is not None and archived_tower_path.exists():
+            shutil.copy2(archived_tower_path, tower_path)
+        raise
     map_path = output_dir / "village_connectivity_map.html"
     subprocess.run(
         [

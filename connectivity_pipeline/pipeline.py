@@ -31,6 +31,10 @@ from .google_sheets_sync import sync_pipeline_outputs
 REQUIRED_VILLAGE_COLUMNS = ["state", "district", "block", "village", "lgd_code"]
 
 
+class OpenCellIDDailyQuotaExceeded(requests.HTTPError):
+    """Raised for the provider's non-retriable daily request limit."""
+
+
 @dataclass
 class PipelineOutputs:
     provider_csv: Path
@@ -581,6 +585,13 @@ def fetch_opencellid_tile_rows(token: str, bbox: tuple[float, float, float, floa
             "offset": offset,
         }
         response = requests.get("https://opencellid.org/cell/getInArea", params=params, timeout=120)
+        if response.status_code == 429:
+            # OpenCellID documents 429 as its daily credit limit. Retrying would
+            # only waste credits and can never make the current run succeed.
+            raise OpenCellIDDailyQuotaExceeded(
+                "OpenCellID daily request quota was exhausted; retain the previous snapshot and retry after the next UTC reset.",
+                response=response,
+            )
         response.raise_for_status()
         tile_df = parse_opencellid_area_csv(response.text)
         if tile_df.empty:
