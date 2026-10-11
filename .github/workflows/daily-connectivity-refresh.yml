@@ -120,11 +120,16 @@ jobs:
         run: |
           python generate_requested_districts_site.py
 
+      - name: Build public strength history
+        run: |
+          python generate_connectivity_history.py
+
       - name: Publish site to docs
         shell: bash
         run: |
           mkdir -p docs/networkmap
           cp outputs/requested_districts_site/index.html docs/networkmap/index.html
+          cp outputs/requested_districts_site/history.html docs/networkmap/history.html
 
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3

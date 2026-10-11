@@ -249,7 +249,7 @@ def build_html(
     }}
     .mini {{
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 10px;
       margin-top: 14px;
     }}
@@ -333,6 +333,8 @@ def build_html(
       font-size: 13px;
       font-weight: 700;
       cursor: pointer;
+      text-decoration: none;
+      text-align: center;
     }}
     .tab-btn.active {{
       background: #223127;
@@ -471,6 +473,7 @@ def build_html(
       <div class="tabs">
         <button id="mapTab" class="tab-btn active" type="button">Map</button>
         <button id="statusTab" class="tab-btn" type="button">Status</button>
+        <a class="tab-btn" href="history.html">History</a>
       </div>
 
       <div class="control">
