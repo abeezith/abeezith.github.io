@@ -313,6 +313,46 @@ def assign_fallback_block_centroids(villages_df: pd.DataFrame) -> pd.DataFrame:
     return villages
 
 
+def fill_source_coordinate_gaps(
+    villages_df: pd.DataFrame,
+    requested_item: dict[str, str],
+    requested_facility_df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Keep source villages while assigning only missing coordinates from safe area centroids."""
+    villages = villages_df.copy()
+    villages["latitude"] = pd.to_numeric(villages["latitude"], errors="coerce")
+    villages["longitude"] = pd.to_numeric(villages["longitude"], errors="coerce")
+    missing = villages["latitude"].isna() | villages["longitude"].isna()
+    if not missing.any():
+        return villages
+
+    fallback = build_lgd_fallback_villages(requested_item, requested_facility_df)
+    fallback["latitude"] = pd.to_numeric(fallback["latitude"], errors="coerce")
+    fallback["longitude"] = pd.to_numeric(fallback["longitude"], errors="coerce")
+    fallback = fallback.dropna(subset=["latitude", "longitude"]).copy()
+    if fallback.empty:
+        return villages
+
+    fallback["block_key"] = fallback["block"].map(normalize_text)
+    block_centroids = fallback.groupby("block_key")[["latitude", "longitude"]].median()
+    district_lat = float(fallback["latitude"].median())
+    district_lon = float(fallback["longitude"].median())
+    if "coordinate_source" not in villages.columns:
+        villages["coordinate_source"] = "input"
+
+    for index in villages.index[missing]:
+        block_key = normalize_text(villages.at[index, "block"])
+        if block_key in block_centroids.index:
+            villages.at[index, "latitude"] = float(block_centroids.at[block_key, "latitude"])
+            villages.at[index, "longitude"] = float(block_centroids.at[block_key, "longitude"])
+            villages.at[index, "coordinate_source"] = "fallback_block_centroid"
+        else:
+            villages.at[index, "latitude"] = district_lat
+            villages.at[index, "longitude"] = district_lon
+            villages.at[index, "coordinate_source"] = "fallback_district_centroid"
+    return villages
+
+
 def requested_matches_filter(item: dict[str, str], requested_state: str, requested_district: str) -> bool:
     if requested_state and normalize_text(item["requested_state"]) != normalize_text(requested_state):
         return False
@@ -748,6 +788,7 @@ def main() -> None:
             continue
         if has_source_rows:
             district_villages = annotate_orphan_like_rows(district_villages)
+            district_villages = fill_source_coordinate_gaps(district_villages, item, requested_facility_df)
         state_ookla_path = state_assets.get(matched_state)
         if state_ookla_path is None and district_villages["latitude"].notna().any() and district_villages["longitude"].notna().any():
             state_ookla_path = prepare_state_assets(base_config, district_villages, STATE_CACHE_ROOT / slugify(matched_state))
