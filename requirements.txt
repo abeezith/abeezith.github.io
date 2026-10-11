@@ -10,3 +10,4 @@ pyarrow
 gspread
 gspread-dataframe
 google-auth
+google-api-python-client

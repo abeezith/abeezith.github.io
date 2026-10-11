@@ -1,8 +1,9 @@
-name: Daily Connectivity Refresh
+name: Weekly Connectivity Refresh
 
 on:
   schedule:
-    - cron: "30 2 * * *"
+    # Sunday 21:30 UTC = Monday 03:00 India Standard Time.
+    - cron: "30 21 * * 0"
   workflow_dispatch:
 
 permissions:
@@ -11,7 +12,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: daily-connectivity-refresh
+  group: weekly-connectivity-refresh
   cancel-in-progress: true
 
 jobs:
@@ -34,13 +35,14 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
-      - name: Preflight Google Sheets inputs
+      - name: Preflight credentials and storage
         shell: bash
         env:
           GOOGLE_SHEETS_SPREADSHEET_ID: ${{ secrets.GOOGLE_SHEETS_SPREADSHEET_ID }}
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
           GOOGLE_SERVICE_ACCOUNT_FILE: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_FILE }}
           OPENCELLID_TOKEN: ${{ secrets.OPENCELLID_TOKEN }}
+          GOOGLE_DRIVE_FOLDER_ID: ${{ vars.GOOGLE_DRIVE_FOLDER_ID }}
         run: |
           python - <<'PY'
           import os
@@ -59,23 +61,56 @@ jobs:
           if not os.getenv("OPENCELLID_TOKEN", "").strip():
               print("Missing OPENCELLID_TOKEN secret.")
               sys.exit(1)
+          if not os.getenv("GOOGLE_DRIVE_FOLDER_ID", "").strip():
+              print("Missing GOOGLE_DRIVE_FOLDER_ID repository variable.")
+              sys.exit(1)
 
-          print("Google Sheets preflight passed.")
+          print("Credentials and Drive storage preflight passed.")
           PY
 
-      - name: Run full connectivity refresh
+      - name: Download pipeline inputs and retained snapshots
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          GOOGLE_SERVICE_ACCOUNT_FILE: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_FILE }}
+          GOOGLE_DRIVE_FOLDER_ID: ${{ vars.GOOGLE_DRIVE_FOLDER_ID }}
+        run: |
+          python drive_assets.py download-inputs --folder-id "$GOOGLE_DRIVE_FOLDER_ID" --destination runtime_inputs
+          python drive_assets.py download-retention --folder-id "$GOOGLE_DRIVE_FOLDER_ID" --destination outputs/retention
+
+      - name: Refresh all requested districts from current sources
+        env:
+          OPENCELLID_TOKEN: ${{ secrets.OPENCELLID_TOKEN }}
+        run: |
+          python enrich_requested_districts_from_stoptb.py \
+            --source-csv runtime_inputs/stoptb_ben_screen_30_Jun_2026_mapped.csv \
+            --requested-districts-csv runtime_inputs/phi_requested_districts.csv \
+            --ookla-parquet runtime_inputs/ookla_mobile_tiles_q1_2026 \
+            --force-refresh
+
+      - name: Combine current district provider estimates
+        run: |
+          python collect_requested_provider_rows.py
+
+      - name: Apply retention policy
+        run: |
+          python retention_policy.py --config config.yaml --provider-csv outputs/requested_district_provider_rows.csv.gz
+
+      - name: Upload retained snapshots
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          GOOGLE_SERVICE_ACCOUNT_FILE: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_FILE }}
+          GOOGLE_DRIVE_FOLDER_ID: ${{ vars.GOOGLE_DRIVE_FOLDER_ID }}
+        run: |
+          python drive_assets.py upload-retention --folder-id "$GOOGLE_DRIVE_FOLDER_ID" --source outputs/retention
+
+      - name: Sync latest estimates to Google Sheets
         env:
           GOOGLE_SHEETS_SPREADSHEET_ID: ${{ secrets.GOOGLE_SHEETS_SPREADSHEET_ID }}
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
           GOOGLE_SERVICE_ACCOUNT_FILE: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_FILE }}
           GOOGLE_SHEETS_WORKSHEET_PREFIX: ${{ secrets.GOOGLE_SHEETS_WORKSHEET_PREFIX }}
-          OPENCELLID_TOKEN: ${{ secrets.OPENCELLID_TOKEN }}
         run: |
-          python run_pipeline.py --config config.yaml
-
-      - name: Apply retention policy
-        run: |
-          python retention_policy.py --config config.yaml
+          python sync_google_sheets_from_outputs.py --config config.yaml --provider-csv outputs/requested_district_provider_rows.csv.gz
 
       - name: Rebuild requested district summary
         run: |

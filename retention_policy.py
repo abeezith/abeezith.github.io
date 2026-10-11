@@ -18,7 +18,6 @@ MONTHLY_ROOT = RETENTION_ROOT / "monthly"
 ANNUAL_ROOT = RETENTION_ROOT / "annual"
 
 RAW_OUTPUT_FILES = {
-    "village_provider_signal_estimate.csv": ROOT / "outputs" / "village_provider_signal_estimate.csv",
     "village_connectivity_summary.xlsx": ROOT / "outputs" / "village_connectivity_summary.xlsx",
     "village_connectivity.geojson": ROOT / "outputs" / "village_connectivity.geojson",
     "requested_district_status.csv": ROOT / "outputs" / "requested_districts" / "requested_district_status.csv",
@@ -44,10 +43,11 @@ def retention_config(config: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def copy_current_outputs(weekly_dir: Path) -> list[Path]:
+def copy_current_outputs(weekly_dir: Path, provider_csv: Path) -> list[Path]:
     weekly_dir.mkdir(parents=True, exist_ok=True)
     copied: list[Path] = []
-    for name, source in RAW_OUTPUT_FILES.items():
+    sources = {"village_provider_signal_estimate.csv": provider_csv, **RAW_OUTPUT_FILES}
+    for name, source in sources.items():
         if not source.exists():
             continue
         target = weekly_dir / name
@@ -258,6 +258,12 @@ def prune_by_age(root: Path, keep_days: int | None = None, keep_months: int | No
 def main() -> None:
     parser = argparse.ArgumentParser(description="Apply weekly, monthly, and annual retention for connectivity outputs.")
     parser.add_argument("--config", default=ROOT / "config.yaml", type=Path, help="Path to the YAML config file.")
+    parser.add_argument(
+        "--provider-csv",
+        default=ROOT / "outputs" / "village_provider_signal_estimate.csv",
+        type=Path,
+        help="Current provider-estimate CSV, including all districts for a full refresh.",
+    )
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -274,7 +280,9 @@ def main() -> None:
     weekly_dir = WEEKLY_ROOT / week_bucket
     if weekly_dir.exists():
         shutil.rmtree(weekly_dir, ignore_errors=True)
-    copy_current_outputs(weekly_dir)
+    if not args.provider_csv.exists():
+        raise FileNotFoundError(f"Provider CSV not found: {args.provider_csv}")
+    copy_current_outputs(weekly_dir, args.provider_csv)
 
     weekly_dirs = sorted([child for child in WEEKLY_ROOT.iterdir() if child.is_dir()]) if WEEKLY_ROOT.exists() else []
     monthly_dir = MONTHLY_ROOT / month_bucket

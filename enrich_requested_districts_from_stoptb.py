@@ -5,6 +5,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import time
 import re
 from pathlib import Path
@@ -72,8 +73,8 @@ def district_key(state: str, district: str) -> tuple[str, str]:
     return (normalize_text(state), normalize_text(district))
 
 
-def load_requested_districts() -> list[dict[str, str]]:
-    requested_df = pd.read_csv(REQUESTED_DISTRICTS_CSV, low_memory=False)
+def load_requested_districts(requested_districts_csv: Path) -> list[dict[str, str]]:
+    requested_df = pd.read_csv(requested_districts_csv, low_memory=False)
     required = ["requested_state", "requested_district", "matched_state", "matched_district"]
     missing = [column for column in required if column not in requested_df.columns]
     if missing:
@@ -104,8 +105,8 @@ def load_requested_districts() -> list[dict[str, str]]:
     return requested_districts
 
 
-def load_requested_facility_rows() -> pd.DataFrame:
-    return pd.read_csv(REQUESTED_DISTRICTS_CSV, low_memory=False)
+def load_requested_facility_rows(requested_districts_csv: Path) -> pd.DataFrame:
+    return pd.read_csv(requested_districts_csv, low_memory=False)
 
 
 def ensure_lgd_village_master() -> Path:
@@ -502,6 +503,7 @@ def run_district_pipeline(
     district_dir: Path,
     shared_ookla_path: Path,
     opencellid_tower_path: Path | None = None,
+    force_refresh: bool = False,
 ) -> dict[str, str]:
     district_dir.mkdir(parents=True, exist_ok=True)
     data_dir = district_dir / "data"
@@ -510,6 +512,9 @@ def run_district_pipeline(
     output_dir.mkdir(parents=True, exist_ok=True)
     villages_path = data_dir / "villages.csv"
     tower_path = data_dir / "opencellid_district.csv.gz"
+    if force_refresh and tower_path.exists():
+        archive_existing_path(tower_path)
+        tower_path.unlink(missing_ok=True)
     if opencellid_tower_path is not None:
         if opencellid_tower_path.resolve() != tower_path.resolve():
             archive_existing_path(tower_path)
@@ -530,6 +535,8 @@ def run_district_pipeline(
     config["paths"]["opencellid_towers"] = str(tower_path)
     config["paths"]["ookla_tiles"] = str(shared_ookla_path)
     config["paths"]["output_dir"] = str(output_dir)
+    if force_refresh:
+        config.setdefault("cache", {})["reuse_opencellid_extent_cache"] = False
     if opencellid_tower_path is not None:
         config["distance"]["search_radius_km"] = float(config["distance"].get("shared_pool_search_radius_km", config["distance"].get("search_radius_km", 10)))
 
@@ -546,7 +553,7 @@ def run_district_pipeline(
     map_path = output_dir / "village_connectivity_map.html"
     subprocess.run(
         [
-            str(ROOT / ".venv" / "Scripts" / "python.exe"),
+            sys.executable,
             str(ROOT / "generate_provider_map.py"),
             "--input-csv",
             str(outputs.provider_csv),
@@ -621,7 +628,7 @@ def build_site(summary_rows: list[dict[str, object]], missing: list[tuple[str, s
     SITE_ROOT.mkdir(parents=True, exist_ok=True)
     subprocess.run(
         [
-            str(ROOT / ".venv" / "Scripts" / "python.exe"),
+            sys.executable,
             str(ROOT / "report_requested_district_status.py"),
         ],
         check=True,
@@ -629,7 +636,7 @@ def build_site(summary_rows: list[dict[str, object]], missing: list[tuple[str, s
     )
     subprocess.run(
         [
-            str(ROOT / ".venv" / "Scripts" / "python.exe"),
+            sys.executable,
             str(ROOT / "generate_requested_districts_site.py"),
         ],
         check=True,
@@ -660,15 +667,21 @@ def merge_on_requested_district(existing: pd.DataFrame | None, new: pd.DataFrame
 
 
 def main() -> None:
+    global GLOBAL_OOKLA_PARQUET
     parser = argparse.ArgumentParser(description="Enrich requested districts from StopTB screening rows using OpenCellID and Ookla.")
     parser.add_argument("--requested-state", default="", help="Limit processing to a single requested state label.")
     parser.add_argument("--requested-district", default="", help="Limit processing to a single requested district label.")
+    parser.add_argument("--source-csv", type=Path, default=SOURCE_CSV, help="Screening-source CSV path.")
+    parser.add_argument("--requested-districts-csv", type=Path, default=REQUESTED_DISTRICTS_CSV, help="Requested-district list CSV path.")
+    parser.add_argument("--ookla-parquet", type=Path, default=GLOBAL_OOKLA_PARQUET, help="Ookla Parquet file or dataset directory.")
+    parser.add_argument("--force-refresh", action="store_true", help="Bypass old district/tower outputs and fetch current OpenCellID evidence.")
     args = parser.parse_args()
+    GLOBAL_OOKLA_PARQUET = args.ookla_parquet
 
     DISTRICT_OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
     base_config = load_config(BASE_CONFIG)
-    requested_districts = load_requested_districts()
-    requested_facility_df = load_requested_facility_rows()
+    requested_districts = load_requested_districts(args.requested_districts_csv)
+    requested_facility_df = load_requested_facility_rows(args.requested_districts_csv)
     if args.requested_state or args.requested_district:
         requested_districts = [
             item for item in requested_districts
@@ -676,7 +689,7 @@ def main() -> None:
         ]
         if not requested_districts:
             raise ValueError("No requested districts matched the provided requested-state/requested-district filter.")
-    source = pd.read_csv(SOURCE_CSV, low_memory=False)
+    source = pd.read_csv(args.source_csv, low_memory=False)
     source["canonical_state"] = source["login_info-state_name"].map(canonicalize_state)
     source["canonical_district"] = source["login_info-district_name"].map(canonicalize_district)
 
@@ -710,7 +723,7 @@ def main() -> None:
             (str(row.requested_state), str(row.requested_district)): str(row.status)
             for row in status_df.itertuples(index=False)
         }
-    shared_tower_pool = build_shared_tower_pool()
+    shared_tower_pool = None if args.force_refresh else build_shared_tower_pool()
     state_assets: dict[str, Path] = {}
 
     summary_rows: list[dict[str, object]] = []
@@ -744,7 +757,7 @@ def main() -> None:
         district_slug = f"{slugify(requested_state)}__{slugify(requested_district)}"
         district_dir = DISTRICT_OUTPUT_ROOT / district_slug
         candidate_dirs = existing_district_dir_candidates(requested_state, requested_district, matched_state, matched_district)
-        reused_existing = reuse_existing_district_outputs(district_dir, candidate_dirs)
+        reused_existing = False if args.force_refresh else reuse_existing_district_outputs(district_dir, candidate_dirs)
         used_shared_tower_pool = False
         if args.requested_state or args.requested_district:
             reused_existing = False
@@ -773,10 +786,17 @@ def main() -> None:
                         district_dir,
                         state_ookla_path,
                         opencellid_tower_path=shared_tower_pool,
+                        force_refresh=args.force_refresh,
                     )
                     used_shared_tower_pool = True
                 else:
-                    output_paths = run_district_pipeline(base_config, district_villages, district_dir, state_ookla_path)
+                    output_paths = run_district_pipeline(
+                        base_config,
+                        district_villages,
+                        district_dir,
+                        state_ookla_path,
+                        force_refresh=args.force_refresh,
+                    )
                     provider_csv_path = Path(output_paths["provider_csv"])
                     if has_source_rows and not provider_csv_has_tower_evidence(provider_csv_path):
                         shared_pool_for_retry = shared_tower_pool or build_shared_tower_pool(exclude_dirs={district_dir})
@@ -789,6 +809,7 @@ def main() -> None:
                                 district_dir,
                                 state_ookla_path,
                                 opencellid_tower_path=shared_pool_for_retry,
+                                force_refresh=args.force_refresh,
                             )
                             used_shared_tower_pool = True
             except ValueError as exc:
@@ -808,6 +829,7 @@ def main() -> None:
                     district_dir,
                     state_ookla_path,
                     opencellid_tower_path=shared_tower_pool,
+                    force_refresh=args.force_refresh,
                 )
                 used_shared_tower_pool = True
         if has_source_rows:

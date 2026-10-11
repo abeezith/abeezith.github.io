@@ -81,7 +81,19 @@ cd E:\Resources\SecondBrain\koraput_connectivity_pipeline
 - Existing district folders are archived before overwrite.
 - Existing CSV, XLSX, JSON, and HTML files are archived before replacement.
 - Do not delete `outputs/_archive/`; it is the rollback history.
-- The daily retention job keeps weekly raw snapshots for 4 weeks, monthly rollups for 12 months, and annual rollups for long-term trend analysis under `outputs/retention/`.
+- The weekly GitHub Action keeps four raw weekly snapshots, twelve monthly rollups, and a rolling annual district/provider rollup in the shared Drive folder. GitHub Actions downloads the retained set before each run, updates it, and removes expired snapshots only after the new set has uploaded successfully.
+
+## Weekly Refresh Automation
+
+The `Weekly Connectivity Refresh` workflow runs at 03:00 IST every Monday and can also be run manually from the Actions tab. It refreshes all requested districts using the OpenCellID token stored in `OPENCELLID_TOKEN`, synchronizes the latest full village/provider table to Google Sheets, rebuilds the Pages site, and deploys it.
+
+Required GitHub configuration:
+
+- `OPENCELLID_TOKEN`, `GOOGLE_SERVICE_ACCOUNT_JSON`, and `GOOGLE_SHEETS_SPREADSHEET_ID` repository secrets.
+- `GOOGLE_DRIVE_FOLDER_ID` repository variable, pointing to the shared Drive folder.
+- The Drive folder must be shared as Editor with the service-account email in `GOOGLE_SERVICE_ACCOUNT_JSON`.
+
+The Drive folder contains two source CSV files, the split Ookla Parquet dataset, and retention files. The current Ookla input is versioned but not automatically sourced from Ookla; upload a newer licensed/open dataset to the same folder when one becomes available. This prevents the workflow from misrepresenting static Ookla measurements as weekly observations.
 - Do not store Supabase secrets in `config.yaml`; prefer environment variables or your GitHub repository secrets.
 
 ## Data recency fields
