@@ -949,7 +949,7 @@ def main() -> None:
         summary_merged = merge_on_requested_district(existing_summary, summary, ["state", "district"])
         summary_path = write_csv_with_fallback(summary_merged, summary_output_path)
         summary_json = {
-            "requested_district_count": len(load_requested_districts()),
+            "requested_district_count": len(requested_districts),
             "present_district_count": len(summary_merged),
             "processing_mode": "gps_plus_opencellid_ookla",
             "missing_districts": missing,
