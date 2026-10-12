@@ -40,6 +40,8 @@ outputs/requested_districts/**
 !outputs/dhule_lgd_village_codes.csv
 !outputs/raichur_lgd_village_codes.csv
 !outputs/valsad_lgd_village_codes.csv
+!outputs/lgd_district_overrides/
+!outputs/lgd_district_overrides/*.csv
 !docs/
 !docs/index.html
 !docs/.nojekyll

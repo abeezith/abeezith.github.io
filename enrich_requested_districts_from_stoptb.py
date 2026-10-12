@@ -29,6 +29,7 @@ SITE_ROOT = ROOT / "outputs" / "requested_districts_site"
 SHARED_TOWER_POOL = DISTRICT_OUTPUT_ROOT / "data" / "shared_opencellid_pool.csv.gz"
 STATE_CACHE_ROOT = DISTRICT_OUTPUT_ROOT / "_state_cache"
 LGD_CACHE_ROOT = ROOT / "data" / "cache" / "lgd"
+LGD_OVERRIDE_ROOT = ROOT / "outputs" / "lgd_district_overrides"
 LGD_VILLAGES_CSV = LGD_CACHE_ROOT / "lgd_villages.csv"
 GEOCODE_CACHE_CSV = LGD_CACHE_ROOT / "nominatim_block_centroids.csv"
 LGD_VILLAGES_URL = "https://www.data.gov.in/files/ogdpv2dms/s3fs-public/datafile/lgd_villages.csv"
@@ -219,6 +220,19 @@ def build_lgd_fallback_villages(
     requested_item: dict[str, str],
     requested_facility_df: pd.DataFrame,
 ) -> pd.DataFrame:
+    override_path = LGD_OVERRIDE_ROOT / f"{slugify(requested_item['matched_state'])}__{slugify(requested_item['matched_district'])}.csv"
+    if override_path.exists():
+        override_rows = pd.read_csv(override_path, dtype={"lgd_code": str})
+        required = {"state", "district", "block", "village", "lgd_code"}
+        if required.issubset(override_rows.columns):
+            override_rows = override_rows[["state", "district", "block", "village", "lgd_code"]].dropna(subset=["block", "village"]).drop_duplicates().copy()
+            if not override_rows.empty:
+                override_rows["latitude"] = pd.NA
+                override_rows["longitude"] = pd.NA
+                override_rows = assign_fallback_block_centroids(override_rows)
+                override_rows["coordinate_source"] = "lgd_block_centroid"
+                return override_rows
+
     facility_rows = requested_facility_df[
         (requested_facility_df["requested_state"].map(canonicalize_state).map(normalize_text) == normalize_text(requested_item["requested_state"]))
         & (requested_facility_df["requested_district"].astype(str).str.strip().map(normalize_text) == normalize_text(requested_item["requested_district"]))
