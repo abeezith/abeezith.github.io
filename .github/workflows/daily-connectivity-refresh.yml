@@ -6,6 +6,15 @@ on:
     # within OpenCellID's 1,000 daily request-credit allowance.
     - cron: "30 21 * * *"
   workflow_dispatch:
+    inputs:
+      requested_state:
+        description: "Optional state to refresh instead of the daily rotation"
+        required: false
+        type: string
+      requested_district:
+        description: "Optional district to refresh instead of the daily rotation"
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -80,10 +89,23 @@ jobs:
 
       - name: Select today's district refresh target
         id: target
+        env:
+          REQUESTED_STATE: ${{ inputs.requested_state }}
+          REQUESTED_DISTRICT: ${{ inputs.requested_district }}
         run: |
-          python select_refresh_target.py \
-            --requested-districts-csv runtime_inputs/phi_requested_districts.csv \
-            --github-output "$GITHUB_OUTPUT"
+          if [ -n "$REQUESTED_STATE" ] || [ -n "$REQUESTED_DISTRICT" ]; then
+            if [ -z "$REQUESTED_STATE" ] || [ -z "$REQUESTED_DISTRICT" ]; then
+              echo "Provide both requested_state and requested_district, or leave both blank for the daily rotation."
+              exit 1
+            fi
+            echo "state=$REQUESTED_STATE" >> "$GITHUB_OUTPUT"
+            echo "district=$REQUESTED_DISTRICT" >> "$GITHUB_OUTPUT"
+            echo "Selected manual target: $REQUESTED_STATE / $REQUESTED_DISTRICT"
+          else
+            python select_refresh_target.py \
+              --requested-districts-csv runtime_inputs/phi_requested_districts.csv \
+              --github-output "$GITHUB_OUTPUT"
+          fi
 
       - name: Refresh all requested districts from current sources
         env:
