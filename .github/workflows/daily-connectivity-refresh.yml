@@ -107,6 +107,12 @@ jobs:
               --github-output "$GITHUB_OUTPUT"
           fi
 
+      - name: Validate refresh reporting inputs
+        run: |
+          python report_requested_district_status.py \
+            --source-csv runtime_inputs/stoptb_ben_screen_30_Jun_2026_mapped.csv \
+            --requested-districts-csv runtime_inputs/phi_requested_districts.csv
+
       - name: Refresh all requested districts from current sources
         env:
           OPENCELLID_TOKEN: ${{ secrets.OPENCELLID_TOKEN }}

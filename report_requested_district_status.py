@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import argparse
 from pathlib import Path
 
 import pandas as pd
@@ -94,9 +95,9 @@ def district_recency(output_dir: Path, matched_state: str, provider_csv: Path | 
     return recency
 
 
-def district_status_rows() -> pd.DataFrame:
-    requested = load_requested_districts()
-    source_df = pd.read_csv(SOURCE_CSV, low_memory=False)
+def district_status_rows(requested_districts_csv: Path, source_csv: Path) -> pd.DataFrame:
+    requested = load_requested_districts(requested_districts_csv)
+    source_df = pd.read_csv(source_csv, low_memory=False)
     source_df["canonical_state"] = source_df["login_info-state_name"].map(canonicalize_state)
     source_df["canonical_district"] = source_df["login_info-district_name"].map(canonicalize_district)
 
@@ -203,7 +204,12 @@ def write_markdown(df: pd.DataFrame) -> None:
 
 
 def main() -> None:
-    df = district_status_rows()
+    parser = argparse.ArgumentParser(description="Build requested-district status reports.")
+    parser.add_argument("--source-csv", type=Path, default=SOURCE_CSV)
+    parser.add_argument("--requested-districts-csv", type=Path, default=REQUESTED_DISTRICTS_CSV)
+    args = parser.parse_args()
+
+    df = district_status_rows(args.requested_districts_csv, args.source_csv)
     STATUS_CSV.parent.mkdir(parents=True, exist_ok=True)
     archive_existing_path(STATUS_CSV)
     df.to_csv(STATUS_CSV, index=False)
@@ -211,8 +217,8 @@ def main() -> None:
     payload = {
         "requested_district_count": int(len(df)),
         "status_counts": {key: int(value) for key, value in df["status"].value_counts().to_dict().items()},
-        "requested_district_source": str(REQUESTED_DISTRICTS_CSV),
-        "source_screening_file": str(SOURCE_CSV),
+        "requested_district_source": str(args.requested_districts_csv),
+        "source_screening_file": str(args.source_csv),
     }
     archive_existing_path(STATUS_JSON)
     STATUS_JSON.write_text(json.dumps(payload, indent=2), encoding="utf-8")

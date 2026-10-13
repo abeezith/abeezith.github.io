@@ -688,12 +688,16 @@ def enrich_rows(rows: pd.DataFrame, provider_csv_path: Path) -> pd.DataFrame:
     return enriched
 
 
-def build_site(summary_rows: list[dict[str, object]], missing: list[tuple[str, str]]) -> None:
+def build_site(source_csv: Path, requested_districts_csv: Path) -> None:
     SITE_ROOT.mkdir(parents=True, exist_ok=True)
     subprocess.run(
         [
             sys.executable,
             str(ROOT / "report_requested_district_status.py"),
+            "--source-csv",
+            str(source_csv),
+            "--requested-districts-csv",
+            str(requested_districts_csv),
         ],
         check=True,
         cwd=str(ROOT),
@@ -956,7 +960,7 @@ def main() -> None:
         }
         archive_existing_path(DISTRICT_OUTPUT_ROOT / "requested_district_summary.json")
         (DISTRICT_OUTPUT_ROOT / "requested_district_summary.json").write_text(json.dumps(summary_json, indent=2), encoding="utf-8")
-        build_site(summary_merged.to_dict("records"), missing)
+        build_site(args.source_csv, args.requested_districts_csv)
         print(f"Wrote summary to {summary_path}")
         print(f"Wrote site index to {SITE_ROOT / 'index.html'}")
     else:
